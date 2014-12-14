@@ -1,0 +1,4 @@
+# check update
+> liquibaseUpdate
+# check if update ran
+> checkTables
