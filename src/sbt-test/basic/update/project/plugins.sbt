@@ -13,7 +13,7 @@
          |Specify this property using the scriptedLaunchOpts -D.""".stripMargin)
   }
 
-  else addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % pluginVersion)
+  else addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase-plugin" % pluginVersion)
 }
 
 libraryDependencies ++= Seq(
