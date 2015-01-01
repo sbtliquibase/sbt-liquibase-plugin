@@ -71,7 +71,7 @@ object SbtLiquibase extends AutoPlugin {
 
   val autoImport = Import
 
-  override def projectSettings: Seq[Setting[_]] = liquibaseBaseSettings(Runtime) ++ inConfig(Test)(liquibaseBaseSettings(Test))
+  override def projectSettings: Seq[Setting[_]] = liquibaseBaseSettings(Compile) ++ inConfig(Test)(liquibaseBaseSettings(Test))
 
   def liquibaseBaseSettings(conf: Configuration): Seq[Setting[_]] = {
 
@@ -188,7 +188,7 @@ object SbtLiquibase extends AutoPlugin {
     // Extract values from the setting keys
     (liquibaseUrl, liquibaseUsername, liquibasePassword,
       liquibaseDriver, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
-      liquibaseChangelogCatalog, liquibaseChangelogSchemaName, fullClasspath in conf) map {
+      liquibaseChangelogCatalog, liquibaseChangelogSchemaName, dependencyClasspath in conf) map {
       (url, uname, pass, driver, liquibaseDefaultCatalog,
        liquibaseDefaultSchemaName, liquibaseChangelogCatalog,
        liquibaseChangelogSchemaName, cpath) =>
