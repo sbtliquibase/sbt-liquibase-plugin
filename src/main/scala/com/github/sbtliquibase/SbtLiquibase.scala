@@ -47,6 +47,8 @@ object Import {
   val liquibaseChangelogCatalog = SettingKey[Option[String]]("liquibase-changelog-catalog", "changelog catalog")
   val liquibaseChangelogSchemaName = SettingKey[Option[String]]("liquibase-changelog-schema-name", "changelog schema name")
   val liquibaseContext = SettingKey[String]("liquibase-context", "changeSet contexts to execute")
+  val liquibaseOutputDefaultCatalog = SettingKey[Boolean]("liquibase-output-default-catalog", "Whether to ignore the schema name.")
+  val liquibaseOutputDefaultSchema = SettingKey[Boolean]("liquibase-output-default-schema", "Whether to ignore the schema name.")
 
   lazy val liquibaseDatabase = TaskKey[Database]("liquibase-database", "the database")
   lazy val liquibaseInstance = TaskKey[Liquibase]("liquibase", "liquibase object")
@@ -82,6 +84,8 @@ object SbtLiquibase extends AutoPlugin {
       liquibaseChangelogSchemaName := None,
       liquibaseChangelog := "src/main/migrations/changelog.xml",
       liquibaseContext := "",
+      liquibaseOutputDefaultCatalog := true,
+      liquibaseOutputDefaultSchema := true,
 
       liquibaseDatabase <<= database(conf),
 
@@ -167,9 +171,11 @@ object SbtLiquibase extends AutoPlugin {
 
   def generateChangeLog = {
     ( streams, liquibaseInstance, liquibaseChangelog, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
-      liquibaseChangelogCatalog, liquibaseChangelogSchemaName, baseDirectory) map {
+      liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
+      liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, baseDirectory) map {
       (out, lbase, clog, defaultCatalog, defaultSchemaName,
-       liquibaseChangelogCatalog, liquibaseChangelogSchemaName, bdir) =>
+       liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
+       liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, bdir) =>
       CommandLineUtils.doGenerateChangeLog(
         clog,
         lbase.getDatabase,
@@ -179,7 +185,7 @@ object SbtLiquibase extends AutoPlugin {
         null, // author
         null, // context
         bdir / "src" / "main" / "migrations" absolutePath,
-        new DiffOutputControl)
+        new DiffOutputControl(liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, true))
     }
   }
 

@@ -1,8 +1,16 @@
 language: scala
 scala:
-  - 2.10.4
+- 2.10.4
 script:
-  - sbt scripted
+- sbt scripted
+before_install:
+- "openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in .secring.gpg.enc -out local.secring.gpg -d"
+- "openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in .pubring.gpg.enc -out local.pubring.gpg -d"
 notifications:
   email:
-    - llinder@gmail.com
+  - llinder@gmail.com
+env:
+  global:
+  - secure: ovASqZzW82+LOdjHvhhanpVu9zzltahTGO3oXekSNRHoJ+Bhw46N7Td/0rdb4VUDvcaU2ywghG0K82nENjLI6+uCoQGSh1ftkuZrc0Za+SgwMTmaMHB7OetPTYheiYLOgd+wwV8TzHxKv7vNSte2fF7Y7iFtcNeqGEHecP8TS6s=
+  - secure: Em9XsLgszB4LEH5VSYc12qnZuKovEFGQI6VHWx9LaQ1b90ldHMHewaRf/Cgg+pUxoMdAdMJqeQpEUh23CccpRiz5B5ieyhzbL8ZoTjXHDk980Z3c70+hRgMikHxL3blaAVRzBNYMJ74GKL3cJiBvz5hKkmuJxdV9Fud/RMmmjo0=
+  - secure: f20QwEvch9/YjKqKIQgoes4vY8rTOWp9FDCxYBQ4Q1kKmgnj4EcMg+eqCB8JrNib0X6A3DfRXiAc6005iaLGpxKY6HmXYh9BQ8eCiG+sKxjRiFLAFhIw7P9c3wAdmMBLfXInQCjUhLq4ZWbqtPYhDjwAPoQChPbJlSicCVokyAY=
