@@ -37,7 +37,8 @@ object Import {
   val liquibaseRollbackToDateSql = InputKey[Unit]("liquibase-rollback-to-date-sql", "<date> Writes SQL to roll back the database to that state it was in at the given date/time version to STDOUT")
   val liquibaseFutureRollbackSql = InputKey[Unit]("liquibase-future-rollback-sql", " Writes SQL to roll back the database to the current state after the changes in the changelog have been applied")
 
-  val liquibaseChangelog = SettingKey[String]("liquibase-changelog", "This is your liquibase changelog file to run.")
+  val liquibaseDataDir = SettingKey[File]("liquibase-data-dir", "This is the liquibase migrations directory.")
+  val liquibaseChangelog = SettingKey[File]("liquibase-changelog", "This is your liquibase changelog file to run.")
   val liquibaseUrl = SettingKey[String]("liquibase-url", "The url for liquibase")
   val liquibaseUsername = SettingKey[String]("liquibase-username", "username yo.")
   val liquibasePassword = SettingKey[String]("liquibase-password", "password")
@@ -82,7 +83,8 @@ object SbtLiquibase extends AutoPlugin {
       liquibaseDefaultSchemaName := None,
       liquibaseChangelogCatalog := None,
       liquibaseChangelogSchemaName := None,
-      liquibaseChangelog := "src/main/migrations/changelog.xml",
+      liquibaseDataDir := baseDirectory.value / "src" / "main" / "migrations",
+      liquibaseChangelog := liquibaseDataDir.value / "changelog.xml",
       liquibaseContext := "",
       liquibaseOutputDefaultCatalog := true,
       liquibaseOutputDefaultSchema := true,
@@ -91,7 +93,7 @@ object SbtLiquibase extends AutoPlugin {
 
       liquibaseGenerateChangelog <<= generateChangeLog,
 
-      liquibaseInstance := new Liquibase(liquibaseChangelog.value, new FileSystemResourceAccessor, liquibaseDatabase.value),
+      liquibaseInstance := new Liquibase(liquibaseChangelog.value.absolutePath, new FileSystemResourceAccessor, liquibaseDatabase.value),
 
       liquibaseUpdate := liquibaseInstance.value.execAndClose(_.update(liquibaseContext.value)),
 
@@ -172,19 +174,19 @@ object SbtLiquibase extends AutoPlugin {
   def generateChangeLog = {
     ( streams, liquibaseInstance, liquibaseChangelog, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
       liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
-      liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, baseDirectory) map {
+      liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, liquibaseDataDir) map {
       (out, lbase, clog, defaultCatalog, defaultSchemaName,
        liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
-       liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, bdir) =>
+       liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, dataDir) =>
       CommandLineUtils.doGenerateChangeLog(
-        clog,
+        clog.absolutePath,
         lbase.getDatabase,
         defaultCatalog.orNull,
         defaultSchemaName.orNull,
         null, // snapshotTypes
         null, // author
         null, // context
-        bdir / "src" / "main" / "migrations" absolutePath,
+        dataDir.absolutePath,
         new DiffOutputControl(liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, true))
     }
   }
