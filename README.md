@@ -13,7 +13,7 @@ Add the following to your `project/plugins.sbt`:
 
     resolvers += "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
-    addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % "0.1.-SNAPSHOT")
+    addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % "0.1.0-SNAPSHOT")
 
 ### Step 2: Activate sbt-liquibase-plugin in your build
 
