@@ -5,14 +5,23 @@ scala:
 script:
 - sbt scripted
 after_success:
+# if this isn't a PR build then publish the artifacts
 - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sbt publish || true'
 notifications:
   email:
   - llinder@gmail.com
 before_install:
+# if this isn't a PR build then decrypte the GPG keys
 - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && openssl aes-256-cbc -a -d -k "$ENC_PASSWORD" -in .pubring.gpg.enc -out local.pubring.gpg || true'
 - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && openssl aes-256-cbc -a -d -k "$ENC_PASSWORD" -in .secring.gpg.enc -out local.secring.gpg || true'
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/.ivy2
 env:
+  # ENC_PASSWORD
+  # SONATYPE_USERNAME
+  # SONATYPE_PASSWORD
   global:
   - secure: gylwrJkf7b2TKvdOzvB+J/w3A3wKo1EouH570APRYmCJ4AVaBVTDVKDWDm+iziYLPfhzQ20rl0mktrwI/hF7tWLR1buPgkRxuzdn3op5baOvfJo8EkhuVX8vKdMwWmslDS9XNl+yhxNLTm7gCBuMiZtsJizr/4FbLSnuKWsw4QA=
   - secure: Q/tb4PsxGTutsxpXrPOk1yvhBu8xvrid8m0Alf4IrcpM4MMICJxEqCxhS4vfM609Qq31Mqo8dryO6rYELQkX2ccQnGvRlfIahm1wbfZ03xwe1nzdnlYS7162DjCV+LorJBC4psmlsbRaI6TYaF6L0948h8HU7cJVo8c0mTluqNU=
