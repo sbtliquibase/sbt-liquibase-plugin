@@ -1,8 +1,19 @@
+sudo: false
 language: scala
 scala:
-  - 2.10.4
+- 2.10.4
 script:
-  - sbt scripted
+- sbt scripted
+after_success:
+- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sbt publish || true'
 notifications:
   email:
-    - llinder@gmail.com
+  - llinder@gmail.com
+before_install:
+- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && openssl aes-256-cbc -a -d -k "$ENC_PASSWORD" -in .pubring.gpg.enc -out local.pubring.gpg || true'
+- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && openssl aes-256-cbc -a -d -k "$ENC_PASSWORD" -in .secring.gpg.enc -out local.secring.gpg || true'
+env:
+  global:
+  - secure: gylwrJkf7b2TKvdOzvB+J/w3A3wKo1EouH570APRYmCJ4AVaBVTDVKDWDm+iziYLPfhzQ20rl0mktrwI/hF7tWLR1buPgkRxuzdn3op5baOvfJo8EkhuVX8vKdMwWmslDS9XNl+yhxNLTm7gCBuMiZtsJizr/4FbLSnuKWsw4QA=
+  - secure: Q/tb4PsxGTutsxpXrPOk1yvhBu8xvrid8m0Alf4IrcpM4MMICJxEqCxhS4vfM609Qq31Mqo8dryO6rYELQkX2ccQnGvRlfIahm1wbfZ03xwe1nzdnlYS7162DjCV+LorJBC4psmlsbRaI6TYaF6L0948h8HU7cJVo8c0mTluqNU=
+  - secure: V1sIxDpvhYFCttLeHVLootH38bUyP5qVTtBCaTJd7k47eHJJDrghV5eVp1ZaMvojAKdCiznJN6fLRvFWGok8cZxz/ezi1xV4cH0Bh/CJH7848w+MY4OS1h2HgWljc6gW8wO6NKddcBsYG2BZxlrlC9LZw9YJ9N9l9wMYvyriV00=
