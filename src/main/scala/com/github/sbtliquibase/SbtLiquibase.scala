@@ -4,15 +4,14 @@ import java.io.{OutputStreamWriter, PrintStream}
 import java.text.SimpleDateFormat
 
 import liquibase.Liquibase
-import liquibase.database.Database
 import liquibase.diff.output.DiffOutputControl
 import liquibase.integration.commandline.CommandLineUtils
-import liquibase.resource.FileSystemResourceAccessor
+import liquibase.resource.{ClassLoaderResourceAccessor, FileSystemResourceAccessor}
 import sbt.Keys._
 import sbt.Scoped._
-import sbt.{Setting, _}
 import sbt.classpath._
 import sbt.complete.DefaultParsers._
+import sbt.{Setting, _}
 
 
 object Import {
@@ -39,9 +38,9 @@ object Import {
 
   val liquibaseDataDir = SettingKey[File]("liquibase-data-dir", "This is the liquibase migrations directory.")
   val liquibaseChangelog = SettingKey[File]("liquibase-changelog", "This is your liquibase changelog file to run.")
-  val liquibaseUrl = SettingKey[String]("liquibase-url", "The url for liquibase")
-  val liquibaseUsername = SettingKey[String]("liquibase-username", "username yo.")
-  val liquibasePassword = SettingKey[String]("liquibase-password", "password")
+  val liquibaseUrl = TaskKey[String]("liquibase-url", "The url for liquibase")
+  val liquibaseUsername = TaskKey[String]("liquibase-username", "username yo.")
+  val liquibasePassword = TaskKey[String]("liquibase-password", "password")
   val liquibaseDriver = SettingKey[String]("liquibase-driver", "driver")
   val liquibaseDefaultCatalog = SettingKey[Option[String]]("liquibase-default-catalog", "default catalog")
   val liquibaseDefaultSchemaName = SettingKey[Option[String]]("liquibase-default-schema-name", "default schema name")
@@ -51,28 +50,26 @@ object Import {
   val liquibaseOutputDefaultCatalog = SettingKey[Boolean]("liquibase-output-default-catalog", "Whether to ignore the schema name.")
   val liquibaseOutputDefaultSchema = SettingKey[Boolean]("liquibase-output-default-schema", "Whether to ignore the schema name.")
 
-  lazy val liquibaseDatabase = TaskKey[Database]("liquibase-database", "the database")
-  lazy val liquibaseInstance = TaskKey[Liquibase]("liquibase", "liquibase object")
+  lazy val liquibaseInstance = TaskKey[() => Liquibase]("liquibase", "liquibase object")
 }
 
 object SbtLiquibase extends AutoPlugin {
 
   import Import._
 
+  val autoImport = Import
+
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
   lazy val DateParser = mapOrFail(StringBasic) { date =>
-    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(date)
+    dateFormat.parse(date)
   }
 
-  class RichLiquibase(liquibase: Liquibase) {
+  implicit class RichLiquibase(val liquibase: Liquibase) extends AnyVal {
     def execAndClose(f: (Liquibase) => Unit): Unit = {
       try { f(liquibase) } finally { liquibase.getDatabase.close() }
     }
   }
-  implicit def RichLiquibase(liquibase: Liquibase): RichLiquibase = new RichLiquibase(liquibase)
-
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-
-  val autoImport = Import
 
   override def projectSettings: Seq[Setting[_]] = liquibaseBaseSettings(Compile) ++ inConfig(Test)(liquibaseBaseSettings(Test))
 
@@ -89,85 +86,105 @@ object SbtLiquibase extends AutoPlugin {
       liquibaseOutputDefaultCatalog := true,
       liquibaseOutputDefaultSchema := true,
 
-      liquibaseDatabase <<= database(conf),
+      liquibaseGenerateChangelog := generateChangeLog,
 
-      liquibaseGenerateChangelog <<= generateChangeLog,
+      liquibaseInstance := { () =>
+        val classpath = (dependencyClasspath in conf).value
+        val accessor = new ClassLoaderResourceAccessor(ClasspathUtilities.toLoader(classpath.map(_.data)))
+        val database = CommandLineUtils.createDatabaseObject(
+          accessor,
+          liquibaseUrl.value,
+          liquibaseUsername.value,
+          liquibasePassword.value,
+          liquibaseDriver.value,
+          liquibaseDefaultCatalog.value.orNull,
+          liquibaseDefaultSchemaName.value.orNull,
+          false, // outputDefaultCatalog
+          true, // outputDefaultSchema
+          null, // databaseClass
+          null, // driverPropertiesFile
+          null, // propertyProviderClass
+          liquibaseChangelogCatalog.value.orNull,
+          liquibaseChangelogSchemaName.value.orNull,
+          null, // databaseChangeLogTableName
+          null // databaseChangeLogLockTableName
+        )
+        new Liquibase(liquibaseChangelog.value.absolutePath, new FileSystemResourceAccessor, database)
+      },
 
-      liquibaseInstance := new Liquibase(liquibaseChangelog.value.absolutePath, new FileSystemResourceAccessor, liquibaseDatabase.value),
+      liquibaseUpdate := liquibaseInstance.value().execAndClose(_.update(liquibaseContext.value)),
 
-      liquibaseUpdate := liquibaseInstance.value.execAndClose(_.update(liquibaseContext.value)),
-
-      liquibaseStatus := liquibaseInstance.value.execAndClose {
+      liquibaseStatus := liquibaseInstance.value().execAndClose {
         _.reportStatus(true, liquibaseContext.value, new OutputStreamWriter(System.out))
       },
 
-      liquibaseClearChecksums := liquibaseInstance.value.execAndClose(_.clearCheckSums()),
+      liquibaseClearChecksums := liquibaseInstance.value().execAndClose(_.clearCheckSums()),
 
-      liquibaseListLocks := liquibaseInstance.value.execAndClose(_.reportLocks(new PrintStream(System.out))),
+      liquibaseListLocks := liquibaseInstance.value().execAndClose(_.reportLocks(new PrintStream(System.out))),
 
-      liquibaseReleaseLocks <<= (streams, liquibaseInstance) map { (out, lbase) => lbase.execAndClose { _.forceReleaseLocks() } },
+      liquibaseReleaseLocks := liquibaseInstance.value().execAndClose(_.forceReleaseLocks()),
 
-      liquibaseValidateChangelog <<= (streams, liquibaseInstance) map { (out, lbase) => lbase.validate()},
+      liquibaseValidateChangelog := liquibaseInstance.value().execAndClose(_.validate()),
 
       liquibaseDbDoc := {
         val path = (target.value / "liquibase-doc").absolutePath
-        liquibaseInstance.value.execAndClose(_.generateDocumentation(path))
+        liquibaseInstance.value().execAndClose(_.generateDocumentation(path))
         streams.value.log.info(s"Documentation generated in $path")
       },
 
       liquibaseRollback := {
         val tag = token(Space ~> StringBasic, "<tag>").parsed
-        liquibaseInstance.value.execAndClose(_.rollback(tag, liquibaseContext.value))
+        liquibaseInstance.value().execAndClose(_.rollback(tag, liquibaseContext.value))
         streams.value.log.info("Rolled back to tag %s".format(tag))
       },
 
       liquibaseRollbackCount := {
         val count = token(Space ~> IntBasic, "<count>").parsed
-        liquibaseInstance.value.execAndClose(_.rollback(count, liquibaseContext.value))
+        liquibaseInstance.value().execAndClose(_.rollback(count, liquibaseContext.value))
         streams.value.log.info("Rolled back to count %s".format(count))
       },
 
       liquibaseRollbackSql := {
         val tag = token(Space ~> StringBasic, "<tag>").parsed
-        liquibaseInstance.value.execAndClose {
+        liquibaseInstance.value().execAndClose {
           _.rollback(tag, liquibaseContext.value, new OutputStreamWriter(System.out))
         }
       },
 
       liquibaseRollbackCountSql := {
         val count = token(Space ~> IntBasic, "<count>").parsed
-        liquibaseInstance.value.execAndClose {
+        liquibaseInstance.value().execAndClose {
           _.rollback(count, liquibaseContext.value, new OutputStreamWriter(System.out))
         }
       },
 
       liquibaseRollbackToDate := {
         val date = token(Space ~> DateParser, "<date/time>").parsed
-        liquibaseInstance.value.execAndClose(_.rollback(date, liquibaseContext.value))
+        liquibaseInstance.value().execAndClose(_.rollback(date, liquibaseContext.value))
       },
 
       liquibaseRollbackToDateSql := {
         val date = token(Space ~> DateParser, "<date/time>").parsed
-        liquibaseInstance.value.execAndClose {
+        liquibaseInstance.value().execAndClose {
           _.rollback(date, liquibaseContext.value, new OutputStreamWriter(System.out))
         }
       },
 
-      liquibaseFutureRollbackSql := liquibaseInstance.value.execAndClose {
+      liquibaseFutureRollbackSql := liquibaseInstance.value().execAndClose {
         _.futureRollbackSQL(liquibaseContext.value, new OutputStreamWriter(System.out))
       },
 
       liquibaseTag := {
         val tag = token(Space ~> StringBasic, "<tag>").parsed
-        liquibaseInstance.value.execAndClose(_.tag(tag))
+        liquibaseInstance.value().execAndClose(_.tag(tag))
         streams.value.log.info(s"Tagged db with $tag for future rollback if needed")
       },
 
-      liquibaseChangelogSyncSql := liquibaseInstance.value.execAndClose {
+      liquibaseChangelogSyncSql := liquibaseInstance.value().execAndClose {
         _.changeLogSync(liquibaseContext.value, new OutputStreamWriter(System.out))
       },
 
-      liquibaseDropAll := liquibaseInstance.value.execAndClose(_.dropAll())
+      liquibaseDropAll := liquibaseInstance.value().execAndClose(_.dropAll())
     )
   }
 
@@ -175,49 +192,22 @@ object SbtLiquibase extends AutoPlugin {
     ( streams, liquibaseInstance, liquibaseChangelog, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
       liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
       liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, liquibaseDataDir) map {
-      (out, lbase, clog, defaultCatalog, defaultSchemaName,
+      (out, liquibase, clog, defaultCatalog, defaultSchemaName,
        liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
        liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, dataDir) =>
-      CommandLineUtils.doGenerateChangeLog(
-        clog.absolutePath,
-        lbase.getDatabase,
-        defaultCatalog.orNull,
-        defaultSchemaName.orNull,
-        null, // snapshotTypes
-        null, // author
-        null, // context
-        dataDir.absolutePath,
-        new DiffOutputControl(liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, true))
-    }
-  }
-
-  def database(conf: Configuration) = {
-
-    // Extract values from the setting keys
-    (liquibaseUrl, liquibaseUsername, liquibasePassword,
-      liquibaseDriver, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
-      liquibaseChangelogCatalog, liquibaseChangelogSchemaName, dependencyClasspath in conf) map {
-      (url, uname, pass, driver, liquibaseDefaultCatalog,
-       liquibaseDefaultSchemaName, liquibaseChangelogCatalog,
-       liquibaseChangelogSchemaName, cpath) =>
-
-        // create new Database intance
-        CommandLineUtils.createDatabaseObject(
-          ClasspathUtilities.toLoader(cpath.map(_.data)),
-          url,
-          uname,
-          pass,
-          driver,
-          liquibaseDefaultCatalog.orNull,
-          liquibaseDefaultSchemaName.orNull,
-          false, // outputDefaultCatalog
-          true, // outputDefaultSchema
-          null, // databaseClass
-          null, // driverPropertiesFile
-          null, // propertyProviderClass
-          liquibaseChangelogCatalog.orNull,
-          liquibaseChangelogSchemaName.orNull
-        )
+        val instance = liquibase()
+        try {
+          CommandLineUtils.doGenerateChangeLog(
+            clog.absolutePath,
+            instance.getDatabase,
+            defaultCatalog.orNull,
+            defaultSchemaName.orNull,
+            null, // snapshotTypes
+            null, // author
+            null, // context
+            dataDir.absolutePath,
+            new DiffOutputControl())
+        } finally { instance.getDatabase.close() }
     }
   }
 }

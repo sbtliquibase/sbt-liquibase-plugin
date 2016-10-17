@@ -11,9 +11,7 @@ Add the following to your `project/plugins.sbt`:
 
 ## sbt-0.13.7+
 
-    resolvers += "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
-
-    addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % "0.1.0-SNAPSHOT")
+    addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % "0.2.0")
 
 ### Step 2: Activate sbt-liquibase-plugin in your build
 
@@ -31,10 +29,6 @@ Add the following to your 'build.sbt' ( if you are using build.sbt )
     liquibaseDriver   := "com.mysql.jdbc.Driver"
 
     liquibaseUrl      := "jdbc:mysql://localhost:3306/test_db?createDatabaseIfNotExist=true"
-
-Or if you are using a build object extending from Build:
-
-    TODO
 
 ## Settings
 
@@ -183,7 +177,7 @@ Or if you are using a build object extending from Build:
                 <td>Rolls back the last {int i} change sets applied to the database</td>
         </tr>
         <tr>
-                <td><b>liquibase-rollback-sql-count</b> {int}</td>
+                <td><b>liquibase-rollback-count-sql</b> {int}</td>
                 <td>Writes SQL to roll back the last {int i} change sets to STDOUT applied to the database</td>
         </tr>
 
@@ -199,10 +193,10 @@ Or if you are using a build object extending from Build:
                 <td><b>liquibase-future-rollback-sql</b></td>
                 <td>Writes SQL to roll back the database to the current state after the changes in the changelog have been applied.</td>
         </tr>
-	<tr>
-		<td><b>liquibase-drop-all</b></td>
-		<td>Drop all tables</td>
-	</tr>
+        <tr>
+                <td><b>liquibase-drop-all</b></td>
+                <td>Drop all tables</td>
+        </tr>
 
 </table>
 
@@ -218,8 +212,8 @@ Please file bugs or feature requests and I will do my best to address them.
 Acknoledgements
 ---------------
 Inspiration from previous work done by others on the following projects was an enourmous help.
- * sbt-liquibase plugin for sbt 0.11/0.12 (thanks for actually making this plugin in the furst place!)
- * sbt-web (helped to bring this up to speed with 0.13 plugin standars)
+ * sbt-liquibase plugin for sbt 0.11/0.12 (thanks for actually making this plugin in the first place!)
+ * sbt-web (helped to bring this up to speed with 0.13 plugin standarts)
  * sbt-assembly (learned a lot about scripted sbt tests)
 
 

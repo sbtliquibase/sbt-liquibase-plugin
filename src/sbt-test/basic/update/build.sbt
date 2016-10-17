@@ -2,6 +2,7 @@ import java.sql.{Connection, DriverManager}
 
 import com.github.sbtliquibase.SbtLiquibase
 
+lazy val multipleTasks = taskKey[Unit]("Check multiple tasks running")
 
 lazy val test = (project in file("."))
   .enablePlugins(SbtLiquibase)
@@ -18,7 +19,14 @@ lazy val test = (project in file("."))
 
     libraryDependencies ++= Seq(
       "com.h2database" % "h2" % "1.4.182"
-    )
+    ),
+
+    multipleTasks := {},
+
+    multipleTasks <<= multipleTasks.dependsOn(Def.sequential(
+      liquibaseDropAll,
+      liquibaseUpdate
+    ))
   )
 
 val checkTablesTasks = TaskKey[Unit]("checkTables")
