@@ -18,5 +18,5 @@
 
 libraryDependencies ++= Seq(
   "com.h2database" % "h2" % "1.4.182",
-  "org.liquibase" % "liquibase-core" % "3.3.0"
+  "org.liquibase" % "liquibase-core" % "3.5.3"
 )

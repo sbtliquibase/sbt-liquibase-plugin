@@ -5,7 +5,7 @@ organization := "com.github.sbtliquibase"
 
 name := "sbt-liquibase"
 
-version := "0.1.0-SNAPSHOT"
+version := "0.2.0"
 
 licenses := Seq("Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
@@ -13,7 +13,7 @@ homepage := Some(url("https://github.com/sbtliquibase/sbt-liquibase-plugin"))
 
 crossScalaVersions := Seq("2.10.4")
 
-libraryDependencies += "org.liquibase" % "liquibase-core" % "3.3.1"
+libraryDependencies += "org.liquibase" % "liquibase-core" % "3.5.3"
 
 publishMavenStyle := true
 
