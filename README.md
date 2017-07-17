@@ -80,7 +80,7 @@ Acknoledgements
 ---------------
 Inspiration from previous work done by others on the following projects was an enourmous help.
  * sbt-liquibase plugin for sbt 0.11/0.12 (thanks for actually making this plugin in the first place!)
- * sbt-web (helped to bring this up to speed with 0.13 plugin standarts)
+ * sbt-web (helped to bring this up to speed with 0.13 plugin standards)
  * sbt-assembly (learned a lot about scripted sbt tests)
 
 
