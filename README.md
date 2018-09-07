@@ -49,6 +49,7 @@ Add the following to your 'build.sbt' ( if you are using build.sbt )
 |Task|Description|
 |----|-----------|
 |`liquibase-update`|Run the liquibase migration|
+|`liquibase-update-sql`|Writes SQL to update database to current version|
 |`liquibase-status`|Print count of yet to be run changesets|
 |`liquibase-clear-checksums`|Removes all saved checksums from database log. Useful for 'MD5Sum Check Failed' errors|
 |`liquibase-list-locks`|Lists who currently has locks on the database changelog|

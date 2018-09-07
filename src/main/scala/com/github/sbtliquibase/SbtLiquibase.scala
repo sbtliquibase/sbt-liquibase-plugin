@@ -16,6 +16,7 @@ import sbt.{Setting, _}
 
 object Import {
   val liquibaseUpdate = TaskKey[Unit]("liquibase-update", "Run a liquibase migration")
+  val liquibaseUpdateSql = TaskKey[Unit]("liquibase-update-sql", "Writes SQL to update database to current version")
   val liquibaseStatus = TaskKey[Unit]("liquibase-status", "Print count of unrun change sets")
   val liquibaseClearChecksums = TaskKey[Unit]("liquibase-clear-checksums", "Removes all saved checksums from database log. Useful for 'MD5Sum Check Failed' errors")
   val liquibaseListLocks = TaskKey[Unit]("liquibase-list-locks", "Lists who currently has locks on the database changelog")
@@ -113,6 +114,8 @@ object SbtLiquibase extends AutoPlugin {
       },
 
       liquibaseUpdate := liquibaseInstance.value().execAndClose(_.update(liquibaseContext.value)),
+
+      liquibaseUpdateSql := liquibaseInstance.value().execAndClose(_.update(liquibaseContext.value, new OutputStreamWriter(System.out))),
 
       liquibaseStatus := liquibaseInstance.value().execAndClose {
         _.reportStatus(true, liquibaseContext.value, new OutputStreamWriter(System.out))
