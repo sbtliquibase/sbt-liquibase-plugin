@@ -23,10 +23,10 @@ lazy val test = (project in file("."))
 
     multipleTasks := {},
 
-    multipleTasks <<= multipleTasks.dependsOn(Def.sequential(
+    multipleTasks := multipleTasks.dependsOn(Def.sequential(
       liquibaseDropAll,
       liquibaseUpdate
-    ))
+    )).value
   )
 
 val checkTablesTasks = TaskKey[Unit]("checkTables")

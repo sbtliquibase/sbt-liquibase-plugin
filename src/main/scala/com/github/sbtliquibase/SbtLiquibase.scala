@@ -8,7 +8,6 @@ import liquibase.diff.output.DiffOutputControl
 import liquibase.integration.commandline.CommandLineUtils
 import liquibase.resource.{ClassLoaderResourceAccessor, FileSystemResourceAccessor}
 import sbt.Keys._
-import sbt.Scoped._
 import sbt.classpath._
 import sbt.complete.DefaultParsers._
 import sbt.{Setting, _}
@@ -57,7 +56,7 @@ object SbtLiquibase extends AutoPlugin {
 
   import Import._
 
-  val autoImport = Import
+  val autoImport: Import.type = Import
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
@@ -66,7 +65,7 @@ object SbtLiquibase extends AutoPlugin {
   }
 
   implicit class RichLiquibase(val liquibase: Liquibase) extends AnyVal {
-    def execAndClose(f: (Liquibase) => Unit): Unit = {
+    def execAndClose(f: Liquibase => Unit): Unit = {
       try { f(liquibase) } finally { liquibase.getDatabase.close() }
     }
   }
@@ -188,26 +187,20 @@ object SbtLiquibase extends AutoPlugin {
     )
   }
 
-  def generateChangeLog = {
-    ( streams, liquibaseInstance, liquibaseChangelog, liquibaseDefaultCatalog, liquibaseDefaultSchemaName,
-      liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
-      liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, liquibaseDataDir) map {
-      (out, liquibase, clog, defaultCatalog, defaultSchemaName,
-       liquibaseChangelogCatalog, liquibaseChangelogSchemaName,
-       liquibaseOutputDefaultCatalog, liquibaseOutputDefaultSchema, dataDir) =>
-        val instance = liquibase()
-        try {
-          CommandLineUtils.doGenerateChangeLog(
-            clog.absolutePath,
-            instance.getDatabase,
-            defaultCatalog.orNull,
-            defaultSchemaName.orNull,
-            null, // snapshotTypes
-            null, // author
-            null, // context
-            dataDir.absolutePath,
-            new DiffOutputControl())
-        } finally { instance.getDatabase.close() }
-    }
+  def generateChangeLog = Def.task {
+    val instance: Liquibase = liquibaseInstance.value()
+    try {
+      CommandLineUtils.doGenerateChangeLog(
+        liquibaseChangelog.value.absolutePath,
+        instance.getDatabase,
+        liquibaseDefaultCatalog.value.orNull,
+        liquibaseDefaultSchemaName.value.orNull,
+        null, // snapshotTypes
+        null, // author
+        null, // context
+        liquibaseDataDir.value.absolutePath,
+        new DiffOutputControl())
+    } finally { instance.getDatabase.close() }
   }
+
 }

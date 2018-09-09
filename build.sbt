@@ -5,7 +5,7 @@ organization := "com.github.sbtliquibase"
 
 name := "sbt-liquibase"
 
-version := "0.2.0"
+version := "0.3.0-SNAPSHOT"
 
 licenses := Seq("Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
@@ -19,10 +19,8 @@ publishMavenStyle := true
 
 scriptedSettings
 
-//scriptedLaunchOpts <+= version apply { v => "-Dproject.version="+v }
-
 scriptedLaunchOpts := { scriptedLaunchOpts.value ++
-  Seq("-Xmx1024M", "-XX:MaxPermSize=256M", "-Dplugin.version=" + version.value)
+  Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
 }
 
 scriptedBufferLog := false

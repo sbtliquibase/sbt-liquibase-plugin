@@ -4,16 +4,10 @@
 // depends on the sbtLiquibase project
 //lazy val sbtLiquibase = file("../../../../").getAbsoluteFile.toURI
 
-{
-  val pluginVersion = System.getProperty("plugin.version")
-
-  if(pluginVersion == null) {
-    throw new RuntimeException(
-      """|The system property 'plugin.version' is not defined.
-         |Specify this property using the scriptedLaunchOpts -D.""".stripMargin)
-  }
-
-  else addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % pluginVersion)
+sys.props.get("plugin.version") match {
+  case Some(x) => addSbtPlugin("com.github.sbtliquibase" % "sbt-liquibase" % x)
+  case _ => sys.error("""|The system property 'plugin.version' is not defined.
+                         |Specify this property using the scriptedLaunchOpts -D.""".stripMargin)
 }
 
 libraryDependencies ++= Seq(
